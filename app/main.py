@@ -3,10 +3,14 @@ from app.redis.client import check_redis_connection
 from app.middleware.rate_limiter import RateLimitMiddleware
 
 from fastapi import Request
-from app.redis.feature_store import get_recent_features
 
 from app.ml.feature_builder import build_features
 from app.redis.feature_store import get_recent_features
+
+from app.ml.detector_service import DetectorService
+
+from app.dashboard.routes import router as dashboard_router
+
 
 app = FastAPI(
     title = "API GuardFlow",
@@ -14,11 +18,16 @@ app = FastAPI(
     version = "0.1.0"
 )
 
+
+detector_service = DetectorService()
+
 app.add_middleware(
     RateLimitMiddleware,
     max_requests=10,
     window_seconds=60
 )
+
+app.include_router(dashboard_router)
 
 @app.get("/")
 async def root():
@@ -30,7 +39,7 @@ async def root():
 @app.get("/api/data")
 async def get_data():
     return {
-        "message": "This is protected API data"
+        "message": "This is protected API data",
     }
     
 @app.get("/health")
@@ -77,4 +86,18 @@ async def get_product(product_id: int):
     return {
         "product_id": product_id,
         "name": f"Product {product_id}"
+    }
+    
+@app.get("/debug/analyze")
+async def analyze_client(request: Request):
+
+    client_ip = request.client.host
+
+    result = detector_service.analyze(
+        client_ip
+    )
+
+    return {
+        "client_ip": client_ip,
+        **result
     }

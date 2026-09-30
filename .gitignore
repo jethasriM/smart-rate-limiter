@@ -1,6 +1,111 @@
-venv/
-.env
+# =========================
+# Python
+# =========================
+
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Python packaging
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# =========================
+# Environment / Secrets
+# =========================
+
+.env
+.env.*
+!.env.example
+
+# =========================
+# IDE / Editor
+# =========================
+
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# =========================
+# OS files
+# =========================
+
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# =========================
+# Testing / Coverage
+# =========================
+
 .pytest_cache/
-*.pkl
+.coverage
+htmlcov/
+.coverage.*
+
+# =========================
+# Jupyter
+# =========================
+
+.ipynb_checkpoints/
+
+# =========================
+# Logs
+# =========================
+
+*.log
+logs/
+
+# =========================
+# Local databases / data
+# =========================
+
+*.db
+*.sqlite
+*.sqlite3
+
+# Redis local persistence
+dump.rdb
+appendonly.aof
+
+# =========================
+# ML temporary/generated files
+# =========================
+
+*.tmp
+*.temp
+
+# =========================
+# Local simulation outputs
+# =========================
+
+simulation/output/
+simulation/results/
+
+# =========================
+# Generated model files
+# Keep trained model if required by deployment.
+# =========================
+
+# Uncomment if you do NOT want to commit trained models:
+# *.joblib
+# *.pkl
+# models/
+
+# =========================
+# Temporary files
+# =========================
+
+*.bak
+*.swp
+*.swo
+*~
