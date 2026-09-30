@@ -6,6 +6,8 @@ from app.ml.detector_service import DetectorService
 from app.redis.security_events import get_security_events
 from app.redis.client_state import get_client_state
 
+from app.utils.client_identity import get_client_id
+
 
 router = APIRouter()
 
@@ -33,6 +35,8 @@ async def dashboard_data():
 
         try:
             result = detector_service.analyze(client_ip)
+            if result["features"]["request_count"] == 0:
+                continue
 
             # Check cached security state first
             state = get_client_state(client_ip)
@@ -53,7 +57,7 @@ async def dashboard_data():
                 decision = result["decision"]
 
             clients.append({
-                "client_ip": client_ip,
+                "client_ip": get_client_id(client_ip),
                 "decision": decision,
                 "features": result["features"],
                 "anomaly": result["anomaly"]
@@ -320,7 +324,7 @@ async def dashboard():
             <thead>
 
                 <tr>
-                    <th>Client IP</th>
+                    <th>Client ID</th>
                     <th>Requests/min</th>
                     <th>Unique Paths</th>
                     <th>Error Rate</th>
@@ -346,7 +350,7 @@ async def dashboard():
             <thead>
                 <tr>
                     <th>Time</th>
-                    <th>Client IP</th>
+                    <th>Client ID</th>
                     <th>Decision</th>
                     <th>ML Score</th>
                     <th>Requests/min</th>
@@ -558,7 +562,7 @@ async def dashboard():
                             </td>
 
                             <td>
-                                ${event.client_ip}
+                                ${event.client_id}
                             </td>
 
                             <td

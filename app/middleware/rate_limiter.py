@@ -15,6 +15,8 @@ from app.redis.security_events import store_security_event
 from app.redis.client_state import get_client_state
 from app.redis.client_state import set_client_state
 
+from app.utils.client_identity import get_client_id
+
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
 
@@ -37,6 +39,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         client_ip = request.client.host
         
+        client_id = get_client_id(client_ip)
+        
         if request.url.path.startswith((
             "/dashboard",
             "/debug"
@@ -53,7 +57,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                     content={
                 "error": "Request blocked",
                 "message": "Client temporarily blocked due to suspicious behavior",
-                "client_ip": client_ip,
+                "client_ip": client_id,
                 "reason": "cached_behavioral_anomaly"
                    }
                 )
@@ -108,7 +112,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             score = "N/A"
             
         store_security_event(
-            client_ip=client_ip,
+            client_id=client_id,
             decision=ml_result["decision"],
             anomaly=ml_result["anomaly"],
             features=ml_result["features"]
@@ -119,7 +123,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             "BLOCK"
         ):
             set_client_state(
-                client_ip=client_ip,
+                client_id=client_id,
                 decision=ml_result["decision"],
                 anomaly=ml_result["anomaly"]
             )
@@ -137,7 +141,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 content={
                 "error": "Request blocked",
                 "message": "Suspicious behavior detected",
-                "client_ip": client_ip,
+                "client_id": client_id,
                 "reason": "behavioral_anomaly"
                  } 
             )

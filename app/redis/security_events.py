@@ -8,14 +8,14 @@ SECURITY_EVENTS_KEY = "guardflow:security_events"
 
 
 def store_security_event(
-    client_ip: str,
+    client_id: str,
     decision: str,
     anomaly: dict | None,
     features: dict
 ):
     event = {
         "timestamp": time.time(),
-        "client_ip": client_ip,
+        "client_id": client_id,
         "decision": decision,
         "score": (
             anomaly["score"]
