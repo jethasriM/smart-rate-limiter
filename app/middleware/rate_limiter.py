@@ -41,10 +41,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         
         client_id = get_client_id(client_ip)
         
-        if request.url.path.startswith((
-            "/dashboard",
-            "/debug"
-       )):
+        if request.url.path.startswith("/dashboard"):
             return await call_next(request)
         
         existing_state = get_client_state(client_ip)
