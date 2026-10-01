@@ -8,6 +8,17 @@ Unlike a traditional rate limiter that only counts requests, API GuardFlow analy
 
 ---
 
+## 🚀 Live Demo
+
+**API GuardFlow is deployed and running on Render.**
+
+- **Live API:** `https://api-guardflow.onrender.com`
+- **Swagger API Docs:** `https://api-guardflow.onrender.com/docs`
+- **Security Dashboard:** `https://api-guardflow.onrender.com/dashboard`
+- **Health Check:** `https://api-guardflow.onrender.com/health`
+
+> The dashboard uses privacy-preserving client IDs instead of exposing raw client IP addresses.
+
 ## Why API GuardFlow?
 
 Traditional API protection often relies on simple rules such as:
@@ -51,78 +62,85 @@ API GuardFlow adds a behavioral detection layer on top of traditional rate limit
 ## Architecture
 
 ```text
-                         ┌──────────────────────┐
-                         │      API Client      │
-                         └──────────┬───────────┘
-                                    │
-                                    ▼
-                    ┌──────────────────────────────┐
-                    │     GuardFlow Middleware     │
-                    └──────────────┬───────────────┘
-                                   │
-                     ┌─────────────┴─────────────┐
-                     │                           │
-                     ▼                           ▼
-              ┌──────────────┐           ┌──────────────┐
-              │ Client State │           │ Redis Rate   │
-              │ Check        │           │ Limiter      │
-              └──────┬───────┘           └──────┬───────┘
-                     │                           │
-                     │                           ▼
-                     │                    ┌──────────────┐
-                     │                    │    FastAPI   │
-                     │                    │      API     │
-                     │                    └──────┬───────┘
-                     │                           │
-                     │                           ▼
-                     │                  ┌─────────────────┐
-                     │                  │ Feature         │
-                     │                  │ Extraction      │
-                     │                  └────────┬────────┘
-                     │                           │
-                     │                           ▼
-                     │                  ┌─────────────────┐
-                     │                  │ Redis Feature   │
-                     │                  │ Store           │
-                     │                  └────────┬────────┘
-                     │                           │
-                     │                           ▼
-                     │                  ┌─────────────────┐
-                     │                  │ Sliding Window  │
-                     │                  │ Aggregation     │
-                     │                  └────────┬────────┘
-                     │                           │
-                     │                           ▼
-                     │                  ┌─────────────────┐
-                     │                  │ Isolation       │
-                     │                  │ Forest          │
-                     │                  └────────┬────────┘
-                     │                           │
-                     │                           ▼
-                     │                  ┌─────────────────┐
-                     │                  │ Decision Engine │
-                     │                  │ ML + Rules      │
-                     │                  └────────┬────────┘
-                     │                           │
-                     │              ┌────────────┼────────────┐
-                     │              ▼            ▼            ▼
-                     │           ALLOW        THROTTLE       BLOCK
-                     │
-                     └──────────────────────────────────────────┐
-                                                                │
-                                                                ▼
-                                                     ┌────────────────────┐
-                                                     │ Security Event     │
-                                                     │ Store              │
-                                                     └─────────┬──────────┘
-                                                               │
-                                                               ▼
-                                                     ┌────────────────────┐
-                                                     │ Monitoring         │
-                                                     │ Dashboard          │
-                                                     └────────────────────┘
-```
+                         Internet
+                            │
+                            ▼
+                  ┌───────────────────┐
+                  │   FastAPI API     │
+                  │   GuardFlow       │
+                  └─────────┬─────────┘
+                            │
+                    Rate Limit Middleware
+                            │
+              ┌─────────────┴─────────────┐
+              │                           │
+              ▼                           ▼
+       Redis Rate Limiter          Protected API
+              │                           │
+              └─────────────┬─────────────┘
+                            │
+                     Feature Extraction
+                            │
+                            ▼
+                    Sliding Window
+                            │
+                            ▼
+                    Isolation Forest
+                            │
+                            ▼
+                   Decision Engine
+                  ┌──────┬──────┐
+                  ▼      ▼      ▼
+                ALLOW  THROTTLE BLOCK
+                            │
+                            ▼
+                    Security Events
+                            │
+                            ▼
+                       Dashboard
 
+             Render Web Service
+                     │
+                     │ private network
+                     ▼
+              Render Key Value
+```
+## Detection Strategy
+
+API GuardFlow combines unsupervised anomaly detection with
+interpretable behavioral rules.
+
+### Machine Learning
+
+An Isolation Forest analyzes behavioral features including:
+
+- Requests per second
+- Unique paths
+- Path entropy
+- Error rate
+- Average payload size
+- Average processing time
+- Average inter-request time
+
+The model produces an anomaly prediction and decision score.
+
+### Behavioral Rules
+
+Additional rules capture strong abuse patterns such as:
+
+- High error rate combined with broad endpoint probing
+- Very rapid requests across multiple endpoints
+
+These rules provide interpretable safeguards for patterns that
+may not be classified as anomalies by the Isolation Forest alone.
+
+### Final Decision
+
+The system produces one of:
+
+ALLOW
+THROTTLE
+BLOCK
 ---
 
 ## How It Works
@@ -468,11 +486,7 @@ The dashboard can preserve this historical progression even after a temporary cl
 
 GuardFlow includes a lightweight real-time monitoring dashboard.
 
-Open:
-
-```text
-http://127.0.0.1:8000/dashboard
-```
+---
 
 The dashboard displays:
 
@@ -495,7 +509,7 @@ The dashboard displays:
 A suspicious test client produced:
 
 ```text
-Client IP:          127.0.0.3
+Client IP:          127.0.0.x
 Requests/minute:   6
 Unique paths:      5
 Error rate:        66.7%
@@ -507,7 +521,7 @@ Decision:          BLOCK
 A normal test client produced:
 
 ```text
-Client IP:          127.0.0.2
+Client IP:          127.0.0.y
 Requests/minute:   6
 Unique paths:      2
 Error rate:        0%
@@ -519,6 +533,13 @@ Decision:          ALLOW
 This demonstrates that similar request volume can still result in different security decisions based on client behavior.
 
 ---
+
+## Security Dashboard
+
+The dashboard provides real-time visibility into client behavior,
+decisions, anomaly scores, and recent security events.
+
+![API GuardFlow Dashboard](docs/dashboard.png)
 
 # API Endpoints
 
@@ -845,32 +866,28 @@ python simulation/test_two_clients.py
 
 The simulation generates:
 
-### Normal client
+## Testing
 
-```text
-127.0.0.2
-```
+The project includes automated tests covering core application
+behavior and decision logic.
 
-with repeated API access and slower request intervals.
+The system was also tested with simulated traffic patterns:
 
-### Suspicious client
+### Normal traffic
 
-```text
-127.0.0.3
-```
+Typical low-frequency requests produced:
 
-with rapid access to multiple endpoints, including unknown endpoints.
+`ALLOW`
 
-A typical result is:
+### Suspicious traffic
 
-```text
-127.0.0.2 → ALLOW
-127.0.0.3 → BLOCK
-```
+Rapid requests across multiple endpoints with high error rates
+and high endpoint diversity produced:
 
-The suspicious client can then receive subsequent `403` responses because its temporary security state is cached in Redis.
+`BLOCK`
 
----
+The suspicious client's state was subsequently cached in Redis,
+causing subsequent requests to be blocked before reaching the API.
 
 # Example Behavioral Detection
 
@@ -902,6 +919,21 @@ Rapid requests
 The behavioral decision layer can therefore classify the client as suspicious even when the Isolation Forest's binary prediction alone does not cross its anomaly threshold.
 
 ---
+
+## Deployment
+
+API GuardFlow is deployed using:
+
+- **Render Web Service** — FastAPI application
+- **Render Key Value** — Redis-compatible state store
+- **GitHub** — source control and automatic deployment
+- **Environment Variables** — production configuration and secrets
+
+The application uses `REDIS_URL` in production and falls back
+to the local Redis host/port configuration during development.
+
+The trained Isolation Forest model is packaged with the application
+and loaded during startup for inference.
 
 # Rate Limiting vs Behavioral Detection
 
@@ -1034,14 +1066,14 @@ Strong anomaly       → BLOCK
 Normal client:
 
 ```text
-127.0.0.2
+127.0.0.y
 → ALLOW
 ```
 
 Suspicious client:
 
 ```text
-127.0.0.3
+127.0.0.x
 → BLOCK
 ```
 
